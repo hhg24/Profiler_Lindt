@@ -9,15 +9,13 @@ class TestGenerateProfilerInterpretations(unittest.TestCase):
     def test_generates_chapter_based_interpretations(self):
         profiler_df = pd.DataFrame(
             [
-                ["x", "y", "Purchasing behavior", None, None, None, None, None, None, None, "z"],
-                ["x", "y", "Average order value", 100, 120, 80, 90, 110, 105, None, "z"],
-                ["x", "y", "Repeat purchase rate", "25%", "30%", "20%", "22%", "28%", "26%", None, "z"],
-                ["x", "y", "Lifecycle", None, None, None, None, None, None, None, "z"],
-                ["x", "y", "New customers", 10, 10, 10, 10, 10, 10, None, "z"],
+                ["Purchasing behavior", None, None, None, None, None, None, None, None],
+                ["Average order value", 100, 120, 80, 90, 110, 105, None, "9999"],
+                ["Repeat purchase rate", "25%", "30%", "20%", "22%", "28%", "26%", None, "9999%"],
+                ["Lifecycle", None, None, None, None, None, None, None, None],
+                ["New customers", 10, 10, 10, 10, 10, 10, None, "9999"],
             ],
             columns=[
-                "A",
-                "B",
                 "Descriptive feature",
                 "Total",
                 "Dubai",
@@ -35,9 +33,11 @@ class TestGenerateProfilerInterpretations(unittest.TestCase):
         self.assertIn("Within Purchasing behavior", result.loc[1, "Comments"])
         self.assertIn("strongest for Dubai", result.loc[1, "Comments"])
         self.assertIn("lowest for Non Dubai", result.loc[1, "Comments"])
-        self.assertIn("30.0%", result.loc[2, "Comments"])
+        self.assertIn("strongest for Dubai", result.loc[2, "Comments"])
+        self.assertIn("%", result.loc[2, "Comments"])
         self.assertIn("Within Lifecycle", result.loc[4, "Comments"])
         self.assertIn("broadly consistent", result.loc[4, "Comments"])
+        self.assertEqual(result.loc[1, "Trailing"], "9999")
 
     def test_does_not_overwrite_existing_comments_when_disabled(self):
         profiler_df = pd.DataFrame(

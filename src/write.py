@@ -1,5 +1,5 @@
-import pandas as pd
 from typing import Iterable
+import pandas as pd
 
 def write_to_excel(data, file_name, sheet_names=None):
     """
@@ -64,9 +64,11 @@ DEFAULT_PROFILER_CHAPTERS = [
     "IPA5 - Weight",
     "IPA6 - Taste",
 ]
+RELATIVE_TOLERANCE = 1e-6
 
 
 def _as_float(value):
+    """Convert common spreadsheet numeric formats into float, returning None for non-numeric values."""
     if pd.isna(value):
         return None
     if isinstance(value, (int, float)):
@@ -85,16 +87,16 @@ def _as_float(value):
         return None
 
 
-def _looks_like_percentage(values: Iterable, chapter: str, kpi_name: str) -> bool:
+def _looks_like_percentage(raw_values: Iterable, chapter: str, kpi_name: str) -> bool:
+    """Detect whether values should be rendered as percentages based on chapter/KPI labels or raw cell content."""
     if "%" in chapter or "%" in kpi_name:
         return True
-    return any(isinstance(v, str) and "%" in v for v in values)
+    return any(isinstance(v, str) and "%" in v for v in raw_values)
 
 
 def _format_value(value: float, percentage: bool) -> str:
+    """Format a value for narrative output using 1 decimal for percentages and 2 for non-percentages."""
     if percentage:
-        if 0 <= value <= 1:
-            value *= 100
         return f"{value:.1f}%"
     return f"{value:.2f}"
 
@@ -142,7 +144,8 @@ def generate_profiler_interpretations(
         if not current_chapter:
             continue
 
-        if not overwrite_comments and pd.notna(row.get(comments_column)) and str(row.get(comments_column)).strip():
+        existing_comment = row.get(comments_column)
+        if not overwrite_comments and pd.notna(existing_comment) and str(existing_comment).strip():
             continue
 
         numeric_values = []
@@ -161,7 +164,8 @@ def generate_profiler_interpretations(
         avg_value = sum(value for _, value in numeric_values) / len(numeric_values)
         as_percentage = _looks_like_percentage(raw_values, current_chapter, feature_text)
 
-        if max_group == min_group or abs(max_value - min_value) < 1e-9:
+        tolerance = RELATIVE_TOLERANCE * max(1.0, abs(avg_value))
+        if max_group == min_group or abs(max_value - min_value) <= tolerance:
             interpretation = (
                 f"Within {current_chapter}, {feature_text} is broadly consistent across customer groups "
                 f"at around {_format_value(avg_value, as_percentage)}."
